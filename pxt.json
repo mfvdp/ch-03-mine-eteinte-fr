@@ -1,0 +1,36 @@
+{
+  "name": "mine-eteinte",
+  "description": "Une aventure tout en discrétion dans une mine pour le Calliope mini 3 avec le GameKit : trouve les fusibles, ménage ta lampe et reste hors du chemin de Brummi, le robot de maintenance. Avec une intro et un entraînement.",
+  "license": "MIT",
+  "dependencies": {
+    "device": "*",
+    "hw---n3": "*"
+  },
+  "files": [
+    "regles.ts",
+    "dessins.ts",
+    "cinema.ts",
+    "son.ts",
+    "main.ts",
+    "README.md"
+  ],
+  "preferredEditor": "tsprj",
+  "palette": [
+    "#000000",
+    "#eaf3dd",
+    "#e65042",
+    "#a92d3f",
+    "#dd8b45",
+    "#f1cf7c",
+    "#493953",
+    "#78a297",
+    "#253843",
+    "#77c5c4",
+    "#43616a",
+    "#151f2b",
+    "#a3b5a0",
+    "#625958",
+    "#353e40",
+    "#080c13"
+  ]
+}
