@@ -18,7 +18,9 @@ namespace NuitSon {
     const momentsSonsMs = [700, 5300, 7200, 10800, 15500, 19000, 21300, 23400, 25600, 26950, 28500, 34600]
     const numerosSons = [15, 3, 16, 17, 19, 13, 30, 22, 23, 29, 24, 18]
     let numeroMusique = 0
+    // Seule la prochaine partie de la musique reste en mémoire.
     let musique: Buffer[] = []
+    let partiePrete = -1
     // 180 battements par minute : 36 croches par partie de six secondes. Le rythme des images, lui, ne change pas.
     const crocheMs = 1000 / 6
     // Cinq voix laissent trois canaux libres pour la signature du studio.
@@ -146,13 +148,16 @@ namespace NuitSon {
         }
         return donnees
     }
-    function composer() {
+    // Construit les cinq voix d'UNE partie dans musique (environ 5 Ko). Toute la musique d'un coup prenait 55 Ko,
+    // plus que ce que le Calliope mini 3 a de libre à côté de l'écran et de la mine (l'écran restait alors noir).
+    function composer(partie: number) {
         musique=[]
+        partiePrete=partie
         // Tonalité de ré majeur. Fondamentales des accords, partie par partie : ré ré sol la ré si sol la ré la ré.
         const fondamentales=[147,147,196,220,147,247,196,220,147,220,147]
         const tierces=[185,185,247,277,185,294,247,277,185,277,185]
         const quintes=[220,220,294,330,220,370,294,330,220,330,220]
-        for(let partie=0;partie<momentsMusiqueMs.length;partie++) {
+        if(partie>=0 && partie<momentsMusiqueMs.length) {
             let fondamentale=fondamentales[partie], tierce=tierces[partie], quinte=quintes[partie]
             let nombreCroches=Math.round(dureesMusiqueMs[partie]/crocheMs)
             let basse: number[]=[], dureesBasse: number[]=[], arpege: number[]=[], tics: number[]=[]
@@ -275,7 +280,7 @@ namespace NuitSon {
         accordGrave=construireAccordStudio(370,440,587,400)
         accordAigu=construireAccordStudio(440,587,740,340)
         occupeJusquaMs = 0; priorite = 0; etatPrecedent = -1; agePrecedentMs = -1
-        numeroSonIntro = 0; numeroMusique = 0; estCoupe = false; musique=[]
+        numeroSonIntro = 0; numeroMusique = 0; estCoupe = false; musique=[]; partiePrete=-1
         prochaineAmbianceMs=0; prochainBourdonMs=0; numeroAmbiance=0
         // Un bourdonnement doux, des gouttes aiguës, un air léger, un deuxième motif de gouttes ; rien sous 100 Hz.
         ambiances = [construireEnveloppe(3,220,220,80,900,2600),
@@ -288,7 +293,7 @@ namespace NuitSon {
         pasMetal=construireEnveloppe(18,1200,220,155,12,130)
         pasEauCourse=construireEnveloppe(18,980,140,190,18,190)
         pasMetalCourse=construireEnveloppe(18,1400,180,220,12,160)
-        composer()
+        // La musique est construite partie par partie pendant l'intro.
     }
 
     function arreter() {
@@ -322,6 +327,7 @@ namespace NuitSon {
             arreter()
             numeroSonIntro = 0
             numeroMusique = 0
+            musique = []; partiePrete = -1
             prochaineAmbianceMs=instantMs+1200
             prochainBourdonMs=instantMs+600
         }
@@ -339,9 +345,15 @@ namespace NuitSon {
             while(numeroMusique<momentsMusiqueMs.length && Nuit.ageMs>=momentsMusiqueMs[numeroMusique]) {
                 let numeroRepere=numeroMusique++
                 if(Nuit.ageMs-momentsMusiqueMs[numeroRepere]<150) {
-                    for(let voix=0;voix<5;voix++) music.playInstructions(0,musique[numeroRepere*5+voix])
+                    if(partiePrete!=numeroRepere) composer(numeroRepere)
+                    // Le mixeur garde chaque tampon pendant qu'il joue ; musique peut déjà passer à la partie suivante.
+                    for(let voix=0;voix<5;voix++) music.playInstructions(0,musique[voix])
+                    musique=[]; partiePrete=-1
                 }
             }
+            // Préparer la partie suivante juste après le départ de la précédente, quelques secondes avant son heure ;
+            // son départ lance alors seulement le son.
+            if(numeroMusique<momentsMusiqueMs.length && partiePrete!=numeroMusique) composer(numeroMusique)
             // Si le temps saute, on jette les anciens repères au lieu de les rejouer d'un coup.
             while (numeroSonIntro < momentsSonsMs.length
                 && Nuit.ageMs >= Nuit.tempsReelIntroMs(momentsSonsMs[numeroSonIntro])) {
